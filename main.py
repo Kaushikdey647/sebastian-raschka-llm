@@ -39,11 +39,44 @@ def create_dataloader_v2(text, batch_size=4, max_length=256, stride=128, num_wor
     return dataloader
 
 def main():
+    # Getting Constants out of the way
     text = get_verdict_text()
-    dataloader_v1 = create_dataloader_v1(text, batch_size=8, max_length=4, stride=4, num_workers=0, shuffle=True, drop_last=True)
+    manual_seed = 42
+    max_length = 4
+    batch_size = 8
+    vocab_size = 50257
+    output_dim = 256
+
+    # Creating the DataLoader and Embedding Layers for the Verdict Dataset
+    dataloader_v1 = create_dataloader_v1(
+        text = text,
+        batch_size = batch_size,
+        max_length = max_length,
+        stride = max_length,
+        num_workers = 0,
+        shuffle = False,
+        drop_last = True
+    )
+    input_emb_layer = start_emb_layer(
+        vocab_size=vocab_size,
+        output_dim=output_dim,
+        manual_seed=manual_seed
+    )
+    pos_emb_layer = start_emb_layer(
+        vocab_size=max_length,
+        output_dim=output_dim,
+        manual_seed=manual_seed
+    )
+
+    # Having some fun
+
     iter_v1 = iter(dataloader_v1)
-    emb_layer = start_emb_layer(vocab_size=6,output_dim=3,manual_seed=42)
-    print(emb_layer.weight)
+    input_ids, target_ids = next(iter_v1)
+    token_embeddings = input_emb_layer(input_ids)
+    print(token_embeddings.shape)
+    context_length = max_length
+    positional_embeddings = pos_emb_layer(torch.arange(context_length))
+    print(positional_embeddings.shape)
 
 if __name__ == "__main__":
     main()
