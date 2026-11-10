@@ -3,6 +3,7 @@ from torch.utils.data import DataLoader
 import torch
 from verdict import VerdictDataset
 from basic_tokenizer import Tokenizer
+from attention import SelfAttention, BasicAttention
 
 def start_emb_layer(vocab_size,output_dim,manual_seed=42):
     torch.manual_seed(manual_seed)
@@ -73,10 +74,16 @@ def main():
     iter_v1 = iter(dataloader_v1)
     input_ids, target_ids = next(iter_v1)
     token_embeddings = input_emb_layer(input_ids)
-    print(token_embeddings.shape)
-    context_length = max_length
-    positional_embeddings = pos_emb_layer(torch.arange(context_length))
-    print(positional_embeddings.shape)
+    positional_embeddings = pos_emb_layer(torch.arange(max_length))
+    input_embeddings = token_embeddings + positional_embeddings
+    self_attention = SelfAttention(
+        input_dim=output_dim,
+        output_dim=output_dim,
+        random_seed=manual_seed
+    )
+    context_vector, attention_weights = self_attention(input_embeddings)
+    print(context_vector.shape, " (Context Vector)")
+    print(attention_weights.shape, " (Attention Weights)")
 
 if __name__ == "__main__":
     main()
