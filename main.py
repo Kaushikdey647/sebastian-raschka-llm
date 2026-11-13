@@ -1,12 +1,14 @@
 import tiktoken
+from torch.utils.backcompat import keepdim_warning
 from torch.utils.data import DataLoader
 import torch
 from verdict import VerdictDataset
 from basic_tokenizer import Tokenizer
 from attention import SelfAttention, CausalAttention, MultiHeadAttention
+from models import TransformerBlock
+import torch.nn as nn
 
-def start_emb_layer(vocab_size,output_dim,manual_seed=42):
-    torch.manual_seed(manual_seed)
+def start_emb_layer(vocab_size,output_dim):
     emb_layer = torch.nn.Embedding(vocab_size,output_dim)
     return emb_layer
 
@@ -40,72 +42,25 @@ def create_dataloader_v2(text, batch_size=4, max_length=256, stride=128, num_wor
     return dataloader
 
 def main():
-    # Getting Constants out of the way
-    text = get_verdict_text()
-    manual_seed = 42
-    max_length = 4
-    batch_size = 8
-    vocab_size = 50257
-    output_dim = 256
-
-    # Creating the DataLoader and Embedding Layers for the Verdict Dataset
-    dataloader_v1 = create_dataloader_v1(
-        text = text,
-        batch_size = batch_size,
-        max_length = max_length,
-        stride = max_length,
-        num_workers = 0,
-        shuffle = False,
-        drop_last = True
-    )
-    input_emb_layer = start_emb_layer(
-        vocab_size=vocab_size,
-        output_dim=output_dim,
-        manual_seed=manual_seed
-    )
-    pos_emb_layer = start_emb_layer(
-        vocab_size=max_length,
-        output_dim=output_dim,
-        manual_seed=manual_seed
-    )
-
-    # Having some fun
-
-    iter_v1 = iter(dataloader_v1)
-    input_ids, target_ids = next(iter_v1)
-    token_embeddings = input_emb_layer(input_ids)
-    positional_embeddings = pos_emb_layer(torch.arange(max_length))
-    input_embeddings = token_embeddings + positional_embeddings
-    self_attention = SelfAttention(
-        input_dim=output_dim,
-        output_dim=output_dim,
-        dropout=0.1,
-        random_seed=manual_seed
-    )
-    context_vector, attention_weights = self_attention(input_embeddings)
-    print("Self Attention Weights:")
-    print(attention_weights.shape)
-    causal_attention = CausalAttention(
-        input_dim=output_dim,
-        output_dim=output_dim,
-        input_length=max_length,
-        dropout=0.1,
-        random_seed=manual_seed
-    )
-    context_vector, attention_weights = causal_attention(input_embeddings)
-    print("Causal Attention Weights:")
-    print(attention_weights.shape)
-    multi_head_attention = MultiHeadAttention(
-        input_dim=output_dim,
-        output_dim=output_dim,
-        input_length=max_length,
-        num_heads=8,
-        dropout=0.1,
-        random_seed=manual_seed
-    )
-    context_vector, attention_weights = multi_head_attention(input_embeddings)
-    print("Multi Head Attention Weights:")
-    print(attention_weights.shape)
+    torch.manual_seed(42)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
+    cfg = {
+        "vocab_size": 50257,
+        "embedding_dim": 256,
+        "context_length": 1024,
+        "num_layers": 12,
+        "qkv_bias": True,
+        "num_heads": 8,
+        "dropout_rate": 0.1,
+    }
+    x = torch.randn(1, 5, 256)
+    block = TransformerBlock(cfg)
+    output = block(x)
+    print(x.shape)
+    print(output.shape)
+    print(x[0,0,:])
+    print(output[0,0,:])
 
 if __name__ == "__main__":
     main()

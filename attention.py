@@ -2,9 +2,8 @@ from torch import nn
 import torch
 
 class BasicAttention(nn.Module):
-    def __init__(self, random_seed=42):
+    def __init__(self):
         super().__init__()
-        torch.manual_seed(self.random_seed)
     
     def forward(self, X):
         # X: (Batch Size, Sequence Length, Input Dim)
@@ -14,9 +13,8 @@ class BasicAttention(nn.Module):
         return context_vector, attention_weights
 
 class SelfAttention(nn.Module):
-    def __init__(self, input_dim, output_dim, dropout=0.1, random_seed=42):
+    def __init__(self, input_dim, output_dim, dropout=0.1):
         super().__init__()
-        torch.manual_seed(random_seed)
         self.W_q = nn.Linear(input_dim, output_dim)
         self.W_k = nn.Linear(input_dim, output_dim)
         self.W_v = nn.Linear(input_dim, output_dim)
@@ -34,12 +32,10 @@ class SelfAttention(nn.Module):
         return context_vector, attention_weights
 
 class CausalAttention(nn.Module):
-    def __init__(self, input_dim, output_dim, input_length, dropout=0.1, random_seed=42, qkv_bias=False):
+    def __init__(self, input_dim, output_dim, input_length, dropout=0.1, qkv_bias=False):
         super().__init__()
-        torch.manual_seed(random_seed)
         self.input_length = input_length
         self.output_dim = output_dim
-        self.random_seed = random_seed
         self.dropout = torch.nn.Dropout(dropout)
         self.W_q = nn.Linear(input_dim, output_dim, bias=qkv_bias)
         self.W_k = nn.Linear(input_dim, output_dim, bias=qkv_bias)
@@ -63,12 +59,10 @@ class CausalAttention(nn.Module):
         return context_vector, attention_weights
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, input_dim, output_dim, input_length, num_heads, dropout=0.1, random_seed=42, qkv_bias=False):
+    def __init__(self, input_dim, output_dim, input_length, num_heads, dropout=0.1, qkv_bias=False):
         super().__init__()
-        torch.manual_seed(random_seed)
         self.input_length = input_length
         self.output_dim = output_dim
-        self.random_seed = random_seed
         self.num_heads = num_heads 
         self.head_dim = output_dim // num_heads # Dimension of each head, output_dim must be divisible by num_heads
 
@@ -110,4 +104,4 @@ class MultiHeadAttention(nn.Module):
         context_vector = context_vector.transpose(1, 2).contiguous().view(batch_size, sequence_length, self.output_dim)
         # (B, L, D_o) -> (B, L, D_o)
         context_vector = self.out_proj(context_vector) # (B, L, D_o) -> (B, L, D_o) Note: This is a linear projection to the output dimension
-        return context_vector, attention_weights
+        return context_vector
